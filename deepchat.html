@@ -9,6 +9,10 @@
         tailwind.config = { darkMode: 'class' };
     </script>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
         :root {
@@ -1013,7 +1017,7 @@
 
     <input id="file-input-image" type="file" accept="image/*" class="hidden">
     <input id="file-input-camera" type="file" accept="image/*" capture="environment" class="hidden">
-    <input id="file-input-file" type="file" accept=".txt,.md,.json,.csv,.js,.ts,.jsx,.tsx,.py,.html,.css,.xml,.yaml,.yml,.log" class="hidden">
+    <input id="file-input-file" type="file" accept=".txt,.md,.json,.csv,.js,.ts,.jsx,.tsx,.py,.html,.css,.xml,.yaml,.yml,.log,.pdf" class="hidden">
     <input id="file-input-import" type="file" accept=".dcb,.json,application/json" class="hidden">
 
     <div id="lightbox" onclick="closeLightbox()">
@@ -4495,6 +4499,53 @@ closeSidebarOnMobile();
                 addAttachment({ id: uid(), type: 'image', name: file.name || 'image.jpg', size: file.size, mime, dataUrl });
             } catch (e) { showToast('Failed to load image'); }
         }
+        async function handlePdfFile(file) {
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) { showToast('PDF too large (max 15MB)'); return; }
+    
+    showToast('Reading PDF...', 3000);
+    
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = '';
+        
+        // Limit to 100 pages to prevent hanging the phone
+        const maxPages = Math.min(pdf.numPages, 100); 
+        
+        for (let i = 1; i <= maxPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join(' ');
+            fullText += `\n\n--- Page ${i} ---\n${pageText}`;
+        }
+        
+        if (pdf.numPages > 100) {
+            fullText += `\n\n[... Truncated. PDF has ${pdf.numPages} pages total, only extracted first 100 ...]`;
+        }
+        
+        if (!fullText.trim()) {
+            showToast('No text found. Is this a scanned PDF?');
+            return;
+        }
+
+        const approxBytes = new Blob([fullText]).size;
+        
+        addAttachment({ 
+            id: uid(), 
+            type: 'file', 
+            name: file.name, 
+            size: approxBytes, 
+            mime: 'application/pdf', 
+            text: fullText 
+        });
+        showToast(`PDF added: ${maxPages} pages extracted`);
+        
+    } catch (e) {
+        console.error(e);
+        showToast('Failed to read PDF: ' + e.message);
+    }
+}
         async function handleTextFile(file) {
             if (!file) return;
             if (file.size > MAX_TEXT_FILE_BYTES) { showToast('File too large (max 1MB)'); return; }
@@ -6581,8 +6632,16 @@ closeSidebarOnMobile();
                 const file = e.target.files[0]; if (file) await handleImageFile(file); e.target.value = '';
             });
             document.getElementById('file-input-file').addEventListener('change', async (e) => {
-                const file = e.target.files[0]; if (file) await handleTextFile(file); e.target.value = '';
-            });
+    const file = e.target.files[0]; 
+    if (file) {
+        if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+            await handlePdfFile(file);
+        } else {
+            await handleTextFile(file);
+        }
+    }
+    e.target.value = '';
+});
             msgInput.addEventListener('paste', async (e) => {
                 const items = e.clipboardData && e.clipboardData.items;
                 if (!items) return;
