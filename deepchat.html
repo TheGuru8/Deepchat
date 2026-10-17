@@ -942,7 +942,13 @@
                     </button>
                 </div>
             </div>
-
+<div id="context-warning-banner" class="hidden items-start gap-3 mx-3 mt-2 px-3 py-2.5 rounded-xl border text-xs leading-relaxed" style="border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.12);">
+    <i class="fa-solid fa-triangle-exclamation mt-0.5 flex-shrink-0"></i>
+    <div id="context-warning-text" class="flex-1"></div>
+    <button id="context-warning-dismiss" class="text-current opacity-60 hover:opacity-100 flex-shrink-0" title="Dismiss for this session">
+        <i class="fa-solid fa-xmark text-xs"></i>
+    </button>
+</div>
             <div id="messages-wrapper" class="flex-1 relative overflow-hidden">
                 <div id="messages-container" class="absolute inset-0 overflow-y-auto chat-scroll px-3 sm:px-4 py-4 space-y-4"></div>
                 <button id="scroll-toggle-btn" type="button" aria-label="Scroll">
@@ -1935,6 +1941,13 @@
         const SEARCH_SNIPPET_PAD = 40;
 
         const LONG_PRESS_MS = 1200;
+        
+// Context-length warning tuning.
+const CONTEXT_LIMIT_TOKENS = 1000000;
+const CONTEXT_WARN_RATIO = 0.80;
+const CONTEXT_HARD_WARN_RATIO = 0.95;
+const CHARS_PER_TOKEN = 4;
+const CONTEXT_BANNER_DISMISS_KEY = 'deepchat_ctx_banner_dismissed_v1';
 
         const MEMORY_MAX_INJECTED = 10;
         const MEMORY_MIN_WORD_LEN = 3;
@@ -2223,9 +2236,16 @@
             });
         }
 
+// Context-length warning tuning.
+const CONTEXT_LIMIT_TOKENS = 1000000;
+const CONTEXT_WARN_RATIO = 0.80;
+const CONTEXT_HARD_WARN_RATIO = 0.95;
+const CHARS_PER_TOKEN = 4;
+const CONTEXT_BANNER_DISMISS_KEY = 'deepchat_ctx_banner_dismissed_v1';
         // ============================================================
         //  TOOL DEFINITIONS
         // ============================================================
+        
         function getToolsForProvider(providerId) {
             const tools = [];
             if (state.settings.tools.saveToMemory) {
@@ -4186,9 +4206,11 @@
             state.activeChatId = branch.id;
             state.scroll.userScrolledUp = false;
             state.scroll.hasNewBelow = false;
+            sessionStorage.removeItem(CONTEXT_BANNER_DISMISS_KEY);
             saveVault();
             renderSidebar(); renderMessages(); updateHeader();
-            closeSidebarOnMobile();
+renderContextWarning();
+closeSidebarOnMobile();
             showToast('Branched into new chat');
         }
 
@@ -4729,6 +4751,7 @@
             }
             scrollToBottom();
             requestAnimationFrame(() => updateScrollButton());
+            render ContextWarning();
         }
 
         function renderAttachmentsHTML(attachments) {
@@ -6304,6 +6327,7 @@
             renderAttachmentPreviews();
 
             document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+            document.getElementById('context-warning-dismiss').addEventListener('click', dismissContextWarning);
             document.getElementById('open-sidebar').addEventListener('click', openSidebar);
             document.getElementById('close-sidebar').addEventListener('click', closeSidebar);
             document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);
