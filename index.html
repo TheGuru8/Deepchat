@@ -312,6 +312,16 @@
         }
         .memory-chip:hover .remove-mem { opacity: 1; }
         @media (hover: none) { .memory-chip .remove-mem { opacity: 1; } }
+        .memory-chip .pin-mem {
+    opacity: 0.4; transition: opacity 0.15s, color 0.15s;
+    color: #9ca3af; cursor: pointer; font-size: 11px;
+    background: none; border: none; padding: 0;
+}
+.memory-chip:hover .pin-mem { opacity: 1; }
+.memory-chip .pin-mem.pinned { opacity: 1; color: #f59e0b; }
+@media (hover: none) { .memory-chip .pin-mem { opacity: 1; } }
+.memory-chip.is-pinned { background: rgba(245,158,11,0.12); }
+.dark .memory-chip.is-pinned { background: rgba(245,158,11,0.15); }
         .memory-empty {
             border: 1px dashed rgba(128,128,128,0.3);
             border-radius: 12px;
@@ -1387,7 +1397,7 @@
                 <div class="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900/40 p-3">
                     <p class="text-[11px] text-blue-700 dark:text-blue-300 leading-relaxed">
                         <i class="fa-solid fa-circle-info mr-1"></i>
-                        Memories are prepended to every conversation.
+                        Pinned memories are always sent. Others are sent when they match your message.
                     </p>
                 </div>
             </div>
@@ -3276,6 +3286,15 @@ const MEMORY_STOPWORDS = new Set([
             updateMemoryIndicator();
             return mem;
         }
+        function toggleMemoryPin(id) {
+    const mem = state.memories.find(m => m.id === id);
+    if (!mem) return;
+    if (mem.pinned) delete mem.pinned;
+    else mem.pinned = true;
+    saveVault();
+    renderMemoryList();
+    showToast(mem.pinned ? 'Pinned — always sent' : 'Unpinned');
+}
         function removeMemory(id) {
             state.memories = state.memories.filter(m => m.id !== id);
             saveVault();
@@ -3371,18 +3390,32 @@ function buildMemoryContext(currentMessage = '') {
                 list.innerHTML = `<div class="text-center py-6 text-xs text-gray-400">No memories in this category</div>`;
                 return;
             }
-            list.innerHTML = filtered.map(m => {
+            const sorted = [...filtered].sort((a, b) => {
+    const pa = a.pinned ? 1 : 0;
+    const pb = b.pinned ? 1 : 0;
+    if (pa !== pb) return pb - pa;
+    return (b.createdAt || 0) - (a.createdAt || 0);
+});
+list.innerHTML = sorted.map(m => {
                 const cat = MEMORY_CATEGORIES.find(c => c.id === m.category) || MEMORY_CATEGORIES[0];
                 const aiTag = m.addedBy === 'ai' ? `<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-500 font-medium">AI</span>` : '';
-                return `<div class="memory-chip w-full !justify-start" data-mem-id="${m.id}">
+                const pinIcon = m.pinned ? 'fa-solid fa-star' : 'fa-regular fa-star';
+return `<div class="memory-chip w-full !justify-start ${m.pinned ? 'is-pinned' : ''}" data-mem-id="${m.id}">
                     <span class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style="background:${cat.color}20;color:${cat.color}">
                         <i class="fa-solid ${cat.icon} text-[10px]"></i>
                     </span>
                     <span class="flex-1 min-w-0 text-left">${escapeHtml(m.text)}</span>
                     ${aiTag}
-                    <button class="remove-mem" data-remove-mem="${m.id}" title="Forget"><i class="fa-solid fa-xmark"></i></button>
+                    <button class="pin-mem ${m.pinned ? 'pinned' : ''}" data-pin-mem="${m.id}" title="${m.pinned ? 'Unpin' : 'Pin to always send'}"><i class="${pinIcon}"></i></button>
+<button class="remove-mem" data-remove-mem="${m.id}" title="Forget"><i class="fa-solid fa-xmark"></i></button>
                 </div>`;
             }).join('');
+            list.querySelectorAll('[data-pin-mem]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMemoryPin(btn.dataset.pinMem);
+    });
+});
             list.querySelectorAll('[data-remove-mem]').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
