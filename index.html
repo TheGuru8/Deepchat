@@ -1933,6 +1933,19 @@
         const SEARCH_SNIPPET_PAD = 40;
 
         const LONG_PRESS_MS = 1200;
+        
+// Memory retrieval tuning
+const MEMORY_MAX_INJECTED = 10;
+const MEMORY_MIN_WORD_LEN = 3;
+const MEMORY_STOPWORDS = new Set([
+    'the','and','for','are','but','not','you','your','with','this','that','have','has','had',
+    'from','they','them','their','what','when','where','which','who','whom','how','why','can',
+    'could','would','should','will','just','like','also','into','over','out','off','about',
+    'any','all','some','more','most','other','such','only','own','same','than','too','very',
+    'was','were','been','being','does','did','doing','then','there','here','now','get','got',
+    'use','using','used','one','two','new','old','good','bad','please','tell','show','give',
+    'make','made','want','need','know','think','see','look','say','said','ask','asked'
+]);
 
         let state = {
             settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
@@ -3269,23 +3282,59 @@
             renderMemoryList();
             updateMemoryIndicator();
         }
-        function buildMemoryContext() {
-            if (!state.settings.memoryEnabled) return '';
-            if (!state.memories.length) return '';
-            const grouped = {};
-            state.memories.forEach(m => {
-                if (!grouped[m.category]) grouped[m.category] = [];
-                grouped[m.category].push(m.text);
-            });
-            const lines = ['# What I know about the user (persistent memory across all conversations):'];
-            MEMORY_CATEGORIES.forEach(cat => {
-                if (grouped[cat.id] && grouped[cat.id].length) {
-                    lines.push(`\n## ${cat.label}`);
-                    grouped[cat.id].forEach(t => lines.push(`- ${t}`));
-                }
-            });
-            return lines.join('\n');
+        function tokenizeForMemory(text) {
+    if (!text) return [];
+    const tokens = String(text).toLowerCase().match(/[a-z0-9_+#-]+/g) || [];
+    return tokens.filter(t => t.length >= MEMORY_MIN_WORD_LEN && !MEMORY_STOPWORDS.has(t));
+}
+
+function scoreMemory(mem, messageTokens) {
+    const memTokens = tokenizeForMemory(mem.text);
+    if (!memTokens.length || !messageTokens.length) return 0;
+    const set = new Set(messageTokens);
+    let hits = 0;
+    for (const t of memTokens) if (set.has(t)) hits++;
+    return hits;
+}
+
+function buildMemoryContext(currentMessage = '') {
+    if (!state.settings.memoryEnabled) return { text: '', count: 0 };
+    if (!state.memories.length) return { text: '', count: 0 };
+
+    const pinned = state.memories.filter(m => m.pinned);
+    const unpinned = state.memories.filter(m => !m.pinned);
+
+    const messageTokens = tokenizeForMemory(currentMessage);
+    let relevant = [];
+    if (messageTokens.length) {
+        relevant = unpinned
+            .map(m => ({ mem: m, score: scoreMemory(m, messageTokens) }))
+            .filter(x => x.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, MEMORY_MAX_INJECTED)
+            .map(x => x.mem);
+    }
+
+    const selected = [...pinned, ...relevant];
+    if (!selected.length) return { text: '', count: 0 };
+
+    const grouped = {};
+    selected.forEach(m => {
+        const cat = m.category || 'general';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(m.text);
+    });
+
+    const lines = ['# What I know about the user (persistent memory across all conversations):'];
+    MEMORY_CATEGORIES.forEach(cat => {
+        if (grouped[cat.id] && grouped[cat.id].length) {
+            lines.push(`\n## ${cat.label}`);
+            grouped[cat.id].forEach(t => lines.push(`- ${t}`));
         }
+    });
+
+    return { text: lines.join('\n'), count: selected.length };
+}
         function renderMemoryList() {
             const list = document.getElementById('memory-list');
             const cats = document.getElementById('memory-categories');
@@ -5523,9 +5572,9 @@
             const activeChat = getActiveChat();
             const project = activeChat ? getProject(activeChat.projectId) : null;
             const parts = [];
-            const memCtx = buildMemoryContext();
-            if (memCtx) parts.push(memCtx);
-            if (state.settings.systemPrompt) parts.push(state.settings.systemPrompt);
+const memCtx = buildMemoryContext(promptText || '');
+if (memCtx.text) parts.push(memCtx.text);
+if (state.settings.systemPrompt) parts.push(state.settings.systemPrompt);
             if (project && project.systemPrompt) parts.push(project.systemPrompt);
             const systemPrompt = parts.join('\n\n');
             const aModel = PROVIDERS[aPid].models[0].id;
@@ -6020,11 +6069,12 @@
                     }
                 }
                 const apiKey = providerKey(providerId);
-                const project = getProject(chat.projectId);
-                const parts = [];
-                const memCtx = buildMemoryContext();
-                if (memCtx) parts.push(memCtx);
-                if (state.settings.systemPrompt) parts.push(state.settings.systemPrompt);
+const project = getProject(chat.projectId);
+const parts = [];
+const memCtx = buildMemoryContext(opts.searchQuery || '');
+if (memCtx.text) parts.push(memCtx.text);
+assistantMsg.memoryCount = memCtx.count;
+if (state.settings.systemPrompt) parts.push(state.settings.systemPrompt);
                 if (project && project.systemPrompt) parts.push(project.systemPrompt);
                 if (webSearchContext) parts.push(webSearchContext);
                 const systemPrompt = parts.join('\n\n');
