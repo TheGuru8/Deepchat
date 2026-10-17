@@ -1397,7 +1397,7 @@
                 <div class="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900/40 p-3">
                     <p class="text-[11px] text-blue-700 dark:text-blue-300 leading-relaxed">
                         <i class="fa-solid fa-circle-info mr-1"></i>
-                        Pinned memories are always sent. Others are sent when they match your message.
+                        Pinned memories are always sent. Global memories apply everywhere. Project memories only apply in their project.
                     </p>
                 </div>
             </div>
@@ -2260,7 +2260,9 @@ const MEMORY_STOPWORDS = new Set([
             const existing = state.memories.find(m => m.text.toLowerCase() === text.toLowerCase());
             if (existing) return { success: true, note: 'Already in memory' };
             if (state.memories.length >= MAX_MEMORIES) return { error: `Memory bank is full (${MAX_MEMORIES} max)` };
-            const mem = { id: uid(), text, category, createdAt: Date.now(), addedBy: 'ai' };
+            const chat = getActiveChat();
+const projectId = chat ? chat.projectId : null;
+const mem = { id: uid(), text, category, projectId: projectId || null, createdAt: Date.now(), addedBy: 'ai' };
             state.memories.push(mem);
             await saveVault();
             renderMemoryList();
@@ -3275,17 +3277,22 @@ const MEMORY_STOPWORDS = new Set([
         //  MEMORY BANK
         // ============================================================
         function addMemory(text, category = null) {
-            text = (text || '').trim();
-            if (!text) { showToast('Memory cannot be empty'); return null; }
-            if (text.length > 500) { showToast('Memory too long (max 500 chars)'); return null; }
-            if (state.memories.length >= MAX_MEMORIES) { showToast(`Max ${MAX_MEMORIES} memories reached`); return null; }
-            const mem = { id: uid(), text, category: category || detectMemoryCategory(text), createdAt: Date.now() };
-            state.memories.push(mem);
-            saveVault();
-            renderMemoryList();
-            updateMemoryIndicator();
-            return mem;
-        }
+    text = (text || '').trim();
+    if (!text) { showToast('Memory cannot be empty'); return null; }
+    if (text.length > 500) { showToast('Memory too long (max 500 chars)'); return null; }
+    if (state.memories.length >= MAX_MEMORIES) { showToast(`Max ${MAX_MEMORIES} memories reached`); return null; }
+    
+    // Attach to current project if one is active
+    const chat = getActiveChat();
+    const projectId = chat ? chat.projectId : null;
+    
+    const mem = { id: uid(), text, category: category || detectMemoryCategory(text), projectId: projectId || null, createdAt: Date.now() };
+    state.memories.push(mem);
+    saveVault();
+    renderMemoryList();
+    updateMemoryIndicator();
+    return mem;
+}
         function toggleMemoryPin(id) {
     const mem = state.memories.find(m => m.id === id);
     if (!mem) return;
@@ -3320,8 +3327,14 @@ function buildMemoryContext(currentMessage = '') {
     if (!state.settings.memoryEnabled) return { text: '', count: 0 };
     if (!state.memories.length) return { text: '', count: 0 };
 
-    const pinned = state.memories.filter(m => m.pinned);
-    const unpinned = state.memories.filter(m => !m.pinned);
+    const chat = getActiveChat();
+const currentProjectId = chat ? chat.projectId : null;
+
+// Only include memories that are Global (no projectId) or belong to the current project
+const validMemories = state.memories.filter(m => !m.projectId || (currentProjectId && m.projectId === currentProjectId));
+
+const pinned = validMemories.filter(m => m.pinned);
+const unpinned = validMemories.filter(m => !m.pinned);
 
     const messageTokens = tokenizeForMemory(currentMessage);
     let relevant = [];
@@ -3400,12 +3413,18 @@ list.innerHTML = sorted.map(m => {
                 const cat = MEMORY_CATEGORIES.find(c => c.id === m.category) || MEMORY_CATEGORIES[0];
                 const aiTag = m.addedBy === 'ai' ? `<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-500 font-medium">AI</span>` : '';
                 const pinIcon = m.pinned ? 'fa-solid fa-star' : 'fa-regular fa-star';
+const project = m.projectId ? getProject(m.projectId) : null;
+const projectTag = project 
+    ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-500 font-medium ml-1 max-w-[80px] truncate" title="${escapeHtml(project.name)}">${escapeHtml(project.name)}</span>` 
+    : `<span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-500 font-medium ml-1">Global</span>`;
+
 return `<div class="memory-chip w-full !justify-start ${m.pinned ? 'is-pinned' : ''}" data-mem-id="${m.id}">
-                    <span class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style="background:${cat.color}20;color:${cat.color}">
-                        <i class="fa-solid ${cat.icon} text-[10px]"></i>
-                    </span>
-                    <span class="flex-1 min-w-0 text-left">${escapeHtml(m.text)}</span>
-                    ${aiTag}
+    <span class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style="background:${cat.color}20;color:${cat.color}">
+        <i class="fa-solid ${cat.icon} text-[10px]"></i>
+    </span>
+    <span class="flex-1 min-w-0 text-left">${escapeHtml(m.text)}</span>
+    ${projectTag}
+    ${aiTag}
                     <button class="pin-mem ${m.pinned ? 'pinned' : ''}" data-pin-mem="${m.id}" title="${m.pinned ? 'Unpin' : 'Pin to always send'}"><i class="${pinIcon}"></i></button>
 <button class="remove-mem" data-remove-mem="${m.id}" title="Forget"><i class="fa-solid fa-xmark"></i></button>
                 </div>`;
