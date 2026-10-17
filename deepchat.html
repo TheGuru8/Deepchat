@@ -3442,10 +3442,10 @@ const CONTEXT_BANNER_DISMISS_KEY = 'deepchat_ctx_banner_dismissed_v1';
             if (!state.memories.length) return { text: '', count: 0 };
 
             const chat = getActiveChat();
-const currentProjectId = chat ? chat.projectId : (state.activeProjectFilter !== 'all' && state.activeProjectFilter !== 'none' ? state.activeProjectFilter : null);
+const currentProjectId = chat ? chat.projectId : null;
 
 // Only include memories that are Global (no projectId) or belong to the current project
-const validMemories = state.memories.filter(m => !m.projectId || m.projectId === currentProjectId);
+const validMemories = state.memories.filter(m => !m.projectId || (currentProjectId && m.projectId === currentProjectId));
 
 const pinned = validMemories.filter(m => m.pinned);
 const unpinned = validMemories.filter(m => !m.pinned);
