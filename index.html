@@ -934,6 +934,7 @@
             </div>
 
             <div id="messages-wrapper" class="flex-1 relative overflow-hidden">
+            <div id="context-warning" class="hidden absolute top-2 left-0 right-0 z-10 mx-auto max-w-3xl px-3"></div>
                 <div id="messages-container" class="absolute inset-0 overflow-y-auto chat-scroll px-3 sm:px-4 py-4 space-y-4"></div>
                 <button id="scroll-toggle-btn" type="button" aria-label="Scroll">
                     <i id="scroll-toggle-icon" class="fa-solid fa-arrow-down"></i>
@@ -1402,7 +1403,7 @@
                 </div>
             </div>
             <div class="px-5 py-4 border-t border-gray-200 dark:border-gray-800">
-                <button onclick="closeMemoryModal()" class="w-full py-3 rounded-xl accent-bg text-white transition text-sm font-semibold shadow-sm">Done</button>
+                <button onclick="closeMemoryModal(); runSemanticTest()" class="w-full py-3 rounded-xl accent-bg text-white transition text-sm font-semibold shadow-sm">Done</button>
             </div>
         </div>
     </div>
@@ -2263,6 +2264,7 @@ const MEMORY_STOPWORDS = new Set([
             const chat = getActiveChat();
 const projectId = chat ? chat.projectId : null;
 const mem = { id: uid(), text, category, projectId: projectId || null, createdAt: Date.now(), addedBy: 'ai' };
+mem.vector = await getEmbedding(text);
             state.memories.push(mem);
             await saveVault();
             renderMemoryList();
@@ -3276,7 +3278,7 @@ const mem = { id: uid(), text, category, projectId: projectId || null, createdAt
         // ============================================================
         //  MEMORY BANK
         // ============================================================
-        function addMemory(text, category = null) {
+        async function addMemory(text, category = null) {
     text = (text || '').trim();
     if (!text) { showToast('Memory cannot be empty'); return null; }
     if (text.length > 500) { showToast('Memory too long (max 500 chars)'); return null; }
@@ -3287,6 +3289,8 @@ const mem = { id: uid(), text, category, projectId: projectId || null, createdAt
     const projectId = chat ? chat.projectId : null;
     
     const mem = { id: uid(), text, category: category || detectMemoryCategory(text), projectId: projectId || null, createdAt: Date.now() };
+    showToast('Calculating meaning...', 1500);
+mem.vector = await getEmbedding(text);
     state.memories.push(mem);
     saveVault();
     renderMemoryList();
@@ -3323,28 +3327,57 @@ function scoreMemory(mem, messageTokens) {
     return hits;
 }
 
-function buildMemoryContext(currentMessage = '') {
+async function buildMemoryContext(currentMessage = '') {
     if (!state.settings.memoryEnabled) return { text: '', count: 0 };
     if (!state.memories.length) return { text: '', count: 0 };
 
     const chat = getActiveChat();
-const currentProjectId = chat ? chat.projectId : null;
+    const currentProjectId = chat ? chat.projectId : null;
+    
+    const validMemories = state.memories.filter(m => !m.projectId || (currentProjectId && m.projectId === currentProjectId));
+    
+    const pinned = validMemories.filter(m => m.pinned);
+    const unpinned = validMemories.filter(m => !m.pinned);
 
-// Only include memories that are Global (no projectId) or belong to the current project
-const validMemories = state.memories.filter(m => !m.projectId || (currentProjectId && m.projectId === currentProjectId));
-
-const pinned = validMemories.filter(m => m.pinned);
-const unpinned = validMemories.filter(m => !m.pinned);
-
-    const messageTokens = tokenizeForMemory(currentMessage);
     let relevant = [];
-    if (messageTokens.length) {
-        relevant = unpinned
-            .map(m => ({ mem: m, score: scoreMemory(m, messageTokens) }))
-            .filter(x => x.score > 0)
-            .sort((a, b) => b.score - a.score)
-            .slice(0, MEMORY_MAX_INJECTED)
-            .map(x => x.mem);
+    
+    if (currentMessage.trim() && unpinned.length > 0 && typeof getEmbedding === 'function') {
+        try {
+            const msgVector = await getEmbedding(currentMessage);
+            if (msgVector) {
+                relevant = unpinned
+                    .map(m => {
+                        if (!m.vector) return { mem: m, score: 0 };
+                        return { mem: m, score: cosineSimilarity(msgVector, m.vector) };
+                    })
+                    .filter(x => x.score > 0.35)
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, MEMORY_MAX_INJECTED)
+                    .map(x => x.mem);
+            }
+        } catch (e) {
+    console.error("Semantic search failed, falling back to keyword:", e);
+    showToast("Semantic search offline. Using keyword matching.");
+            const messageTokens = tokenizeForMemory(currentMessage);
+            if (messageTokens.length) {
+                relevant = unpinned
+                    .map(m => ({ mem: m, score: scoreMemory(m, messageTokens) }))
+                    .filter(x => x.score > 0)
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, MEMORY_MAX_INJECTED)
+                    .map(x => x.mem);
+            }
+        }
+    } else if (currentMessage.trim() && unpinned.length > 0) {
+        const messageTokens = tokenizeForMemory(currentMessage);
+        if (messageTokens.length) {
+            relevant = unpinned
+                .map(m => ({ mem: m, score: scoreMemory(m, messageTokens) }))
+                .filter(x => x.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, MEMORY_MAX_INJECTED)
+                .map(x => x.mem);
+        }
     }
 
     const selected = [...pinned, ...relevant];
@@ -4652,6 +4685,7 @@ return `<div class="memory-chip w-full !justify-start ${m.pinned ? 'is-pinned' :
             }
             container.innerHTML = chat.messages.map((msg, idx) => renderMessageHTML(msg, idx)).join('');
             attachMessageActions();
+            window.renderContextWarning();
             if (state.search.open && state.search.query) {
                 requestAnimationFrame(() => applySearchHighlights());
             }
@@ -4892,12 +4926,12 @@ return `<div class="memory-chip w-full !justify-start ${m.pinned ? 'is-pinned' :
             panel.classList.remove('scale-100', 'opacity-100');
             setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200);
         }
-        function confirmMemorySave() {
+        async function confirmMemorySave() {
             const textarea = document.getElementById('memory-save-textarea');
             const categorySelect = document.getElementById('memory-save-category');
             const text = textarea.value.trim();
             if (!text) { showToast('Memory cannot be empty'); return; }
-            const mem = addMemory(text, categorySelect.value);
+            const mem = await addMemory(text, categorySelect.value);
             if (mem) {
                 closeMemorySaveModal();
                 showToast('Saved to memory');
@@ -5624,7 +5658,7 @@ return `<div class="memory-chip w-full !justify-start ${m.pinned ? 'is-pinned' :
             const activeChat = getActiveChat();
             const project = activeChat ? getProject(activeChat.projectId) : null;
             const parts = [];
-const memCtx = buildMemoryContext(promptText || '');
+const memCtx = await buildMemoryContext(promptText || '');
 if (memCtx.text) parts.push(memCtx.text);
 if (state.settings.systemPrompt) parts.push(state.settings.systemPrompt);
             if (project && project.systemPrompt) parts.push(project.systemPrompt);
@@ -6123,7 +6157,7 @@ if (state.settings.systemPrompt) parts.push(state.settings.systemPrompt);
                 const apiKey = providerKey(providerId);
 const project = getProject(chat.projectId);
 const parts = [];
-const memCtx = buildMemoryContext(opts.searchQuery || '');
+const memCtx = await buildMemoryContext(opts.searchQuery || '');
 if (memCtx.text) parts.push(memCtx.text);
 assistantMsg.memoryCount = memCtx.count;
 if (state.settings.systemPrompt) parts.push(state.settings.systemPrompt);
@@ -6390,19 +6424,19 @@ if (state.settings.systemPrompt) parts.push(state.settings.systemPrompt);
                 document.getElementById('tool-fetch-toggle').classList.toggle('on');
             });
 
-            document.getElementById('memory-add-btn').addEventListener('click', () => {
-                const input = document.getElementById('memory-input');
-                const mem = addMemory(input.value);
-                if (mem) { input.value = ''; showToast('Memory added'); }
-            });
-            document.getElementById('memory-input').addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const input = document.getElementById('memory-input');
-                    const mem = addMemory(input.value);
-                    if (mem) { input.value = ''; showToast('Memory added'); }
-                }
-            });
+            document.getElementById('memory-add-btn').addEventListener('click', async () => {
+    const input = document.getElementById('memory-input');
+    const mem = await addMemory(input.value);
+    if (mem) { input.value = ''; showToast('Memory added'); }
+});
+document.getElementById('memory-input').addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const input = document.getElementById('memory-input');
+        const mem = await addMemory(input.value);
+        if (mem) { input.value = ''; showToast('Memory added'); }
+    }
+});
 
             document.getElementById('prompt-search').addEventListener('input', () => renderPromptsList());
             document.getElementById('new-prompt-btn').addEventListener('click', () => openPromptEditModal());
@@ -6689,6 +6723,124 @@ document.getElementById('vault-toggle').addEventListener('click', (e) => {
         }
 
         document.addEventListener('DOMContentLoaded', boot);
+        window.runSemanticTest = async () => {
+    try {
+        const a = await getEmbedding("I love pizza");
+        const b = await getEmbedding("Pizza is my favorite food");
+        const c = await getEmbedding("The stock market crashed");
+        showToast(`dims ${a.length} · related ${cosineSimilarity(a,b).toFixed(3)} · unrelated ${cosineSimilarity(a,c).toFixed(3)}`, 10000);
+    } catch (e) {
+        showToast("Test failed: " + e.message, 8000);
+    }
+};
+window.renderContextWarning = function() {
+    const chat = getActiveChat();
+    const wrap = document.getElementById('context-warning');
+    if (!wrap) return;
+    
+    // Hide if no chat or chat is empty
+    if (!chat || chat.messages.length === 0) { 
+        wrap.classList.add('hidden'); 
+        return; 
+    }
+    
+    // Estimate tokens (roughly 4 characters per token)
+    let chars = 0;
+    for (const m of chat.messages) {
+        chars += (m.content || '').length;
+    }
+    const tokens = Math.ceil(chars / 4);
+    const ratio = tokens / 1000000; // 1 Million token limit
+    
+    // If under 70%, hide the warning
+    if (ratio < 0.7) { 
+        wrap.classList.add('hidden'); 
+        return; 
+    }
+    
+    // Show warning
+    wrap.classList.remove('hidden');
+    wrap.innerHTML = `<div class="px-3 py-2 rounded-xl text-xs flex items-center gap-2 ${
+        ratio >= 0.9
+            ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 text-red-700 dark:text-red-300'
+            : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 text-amber-700 dark:text-amber-300'
+    }"><i class="fa-solid fa-triangle-exclamation"></i>
+        <span>~${tokens.toLocaleString()} / 1,000,000 tokens (${(ratio*100).toFixed(0)}%) used. ${ratio >= 0.9 ? 'Start a new chat soon.' : 'Chat is getting long.'}</span>
+    </div>`;
+};
     </script>
-</body>
-</html>
+   <!-- Local Semantic Search Engine -->
+<script type="module">
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+
+    let embeddingPipeline = null;
+
+    // 1. Cosine similarity calculation for vector embeddings
+    function cosineSimilarity(a, b) {
+        if (!a || !b || a.length !== b.length) return 0;
+        let dot = 0, normA = 0, normB = 0;
+        for (let i = 0; i < a.length; i++) {
+            dot += a[i] * b[i];
+            normA += a[i] * a[i];
+            normB += b[i] * b[i];
+        }
+        if (normA === 0 || normB === 0) return 0;
+        return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+    }
+    window.cosineSimilarity = cosineSimilarity;
+
+    let embeddingLoading = null;
+async function loadEmbeddingModel() {
+    if (embeddingPipeline) return embeddingPipeline;
+    if (embeddingLoading) return embeddingLoading;
+    embeddingLoading = (async () => {
+    try {
+            if (!localStorage.getItem('deepchat_model_cached')) {
+    showToast("Downloading AI model (25MB) for the first time...", 5000);
+}
+            
+            env.allowLocalModels = false;
+            // Configure single-threading for mobile WebView stability
+            if (env.backends && env.backends.onnx && env.backends.onnx.wasm) {
+                env.backends.onnx.wasm.numThreads = 1;
+            }
+
+            embeddingPipeline = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+            
+            // Backfill vectors for any legacy memories missing them
+            if (typeof state !== 'undefined' && state && Array.isArray(state.memories)) {
+                for (const mem of state.memories) {
+                    if (!mem.vector && mem.text) {
+                        try {
+                            const out = await embeddingPipeline(mem.text, { pooling: 'mean', normalize: true });
+                            mem.vector = Array.from(out.data);
+                        } catch (err) {}
+                    }
+                }
+                if (typeof saveVault === 'function') saveVault();
+            }
+
+                    if (!localStorage.getItem('deepchat_model_cached')) {
+    showToast("Semantic search engine ready!");
+}
+localStorage.setItem('deepchat_model_cached', 'true');
+        return embeddingPipeline;
+    } catch (e) {
+        console.error("Failed to load embedding model:", e);
+        showToast("Failed to load semantic search model: " + e.message);
+        embeddingLoading = null;
+        return null;
+    }
+    })();
+    return embeddingLoading;
+}
+    window.loadEmbeddingModel = loadEmbeddingModel;
+
+    async function getEmbedding(text) {
+        const pipe = await loadEmbeddingModel();
+        if (!pipe) return null;
+        const output = await pipe(text, { pooling: 'mean', normalize: true });
+        return Array.from(output.data);
+    }
+    window.getEmbedding = getEmbedding;
+</script>
