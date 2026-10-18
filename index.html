@@ -835,31 +835,37 @@
                 <button id="new-chat-btn" class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl accent-bg text-white font-medium transition shadow-sm">
                     <i class="fa-solid fa-plus text-sm"></i> New Chat
                 </button>
-                <div class="flex gap-2">
-                    <button id="open-prompts-btn" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition text-xs font-medium">
-                        <i class="fa-solid fa-bookmark text-xs"></i> Prompts
-                        <span id="prompt-count-badge" class="text-[10px] px-1.5 py-0.5 rounded-full accent-bg text-white leading-none hidden"></span>
-                    </button>
-                    <button id="open-projects-btn" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition text-xs font-medium">
-                        <i class="fa-solid fa-folder text-xs"></i> Projects
-                        <span id="project-count-badge" class="text-[10px] px-1.5 py-0.5 rounded-full accent-bg text-white leading-none hidden"></span>
-                    </button>
-                </div>
-                <div class="flex gap-2">
-                    <button id="open-memory-btn" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition text-xs font-medium">
-                        <i class="fa-solid fa-brain text-xs"></i> Memory
-                        <span id="memory-count-badge" class="text-[10px] px-1.5 py-0.5 rounded-full accent-bg text-white leading-none hidden"></span>
-                    </button>
-                    <button id="export-all-btn" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition text-xs font-medium">
-                        <i class="fa-solid fa-download text-xs"></i> Export
-                    </button>
-                </div>
-                <button id="import-btn" class="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition text-xs font-medium">
-                    <i class="fa-solid fa-upload text-xs"></i> Import Backup
-                </button>
-            </div>
+                    <div class="flex gap-2">
+        <button id="open-prompts-btn" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition text-xs font-medium">
+            <i class="fa-solid fa-bookmark text-xs"></i> Prompts
+            <span id="prompt-count-badge" class="text-[10px] px-1.5 py-0.5 rounded-full accent-bg text-white leading-none hidden"></span>
+        </button>
+        <button id="open-projects-btn" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition text-xs font-medium">
+            <i class="fa-solid fa-folder text-xs"></i> Projects
+            <span id="project-count-badge" class="text-[10px] px-1.5 py-0.5 rounded-full accent-bg text-white leading-none hidden"></span>
+        </button>
+    </div>
+    <div class="flex gap-2">
+        <button id="open-memory-btn" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition text-xs font-medium">
+            <i class="fa-solid fa-brain text-xs"></i> Memory
+            <span id="memory-count-badge" class="text-[10px] px-1.5 py-0.5 rounded-full accent-bg text-white leading-none hidden"></span>
+        </button>
+        <button id="open-global-bookmarks-btn" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition text-xs font-medium">
+            <i class="fa-solid fa-star text-amber-500 text-xs"></i> Bookmarks
+            <span id="global-bookmarks-count-badge" class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white leading-none hidden"></span>
+        </button>
+    </div>
+    <div class="flex gap-2">
+        <button id="export-all-btn" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition text-xs font-medium">
+            <i class="fa-solid fa-download text-xs"></i> Export
+        </button>
+        <button id="import-btn" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition text-xs font-medium">
+            <i class="fa-solid fa-upload text-xs"></i> Import
+        </button>
+    </div>
+</div>
 
-            <div class="px-3 pb-2">
+<div class="px-3 pb-2 mt-2">
                 <div class="relative">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
                     <input id="chat-search" type="text" placeholder="Search chats and messages..."
@@ -1298,6 +1304,31 @@
             <div class="flex-1 overflow-y-auto chat-scroll" id="bookmarks-list"></div>
         </div>
     </div>
+<!-- ===== GLOBAL BOOKMARKS MODAL ===== -->
+<div id="global-bookmarks-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeGlobalBookmarksModal()"></div>
+    <div id="global-bookmarks-panel" class="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl modal-transition transform scale-95 opacity-0 max-h-[85vh] flex flex-col">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+            <div>
+                <h2 class="font-bold text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-star text-amber-500"></i> All Bookmarks
+                </h2>
+                <p class="text-[11px] text-gray-400 mt-0.5">Starred messages from all your chats</p>
+            </div>
+            <button onclick="closeGlobalBookmarksModal()" class="header-icon-btn text-gray-500">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="px-5 py-3 border-b border-gray-200 dark:border-gray-800">
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input id="global-bookmarks-search" type="text" placeholder="Search bookmarked messages..."
+                    class="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl bg-gray-100 dark:bg-gray-800 border border-transparent accent-ring outline-none transition placeholder-gray-400">
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto chat-scroll" id="global-bookmarks-list"></div>
+    </div>
+</div>
 
     <!-- ===== EXPORT MODAL ===== -->
     <div id="export-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
@@ -2778,10 +2809,11 @@ mem.vector = await getEmbedding(text);
                 }
                 await migrateLegacyIfNeeded();
                 state.lock.lastActive = Date.now();
-                if (mode === 'unlock') {
-                    hideLockScreen();
-                    initApp();
-                } else if (mode === 'change-old') {
+               if (mode === 'unlock') {
+    hideLockScreen();
+    localStorage.removeItem('deepchat_lock_time');
+    setTimeout(() => initApp(), 50);
+} else if (mode === 'change-old') {
                     state.lockRuntime.mode = 'change-new';
                     state.lockRuntime.buffer = '';
                     document.getElementById('lock-title').textContent = 'New PIN';
@@ -2866,6 +2898,7 @@ mem.vector = await getEmbedding(text);
             state.lock.biometricEnabled = false;
             state.lock.biometricCredentialId = null;
             state.cryptoKey = null;
+localStorage.setItem('deepchat_lock_time', Date.now().toString());
             state.vaultSalt = null;
             persistLockMeta();
             document.getElementById('lock-toggle').classList.remove('on');
@@ -2934,25 +2967,27 @@ mem.vector = await getEmbedding(text);
         //  AUTO-LOCK
         // ============================================================
         let autoLockTimer = null;
-        function scheduleAutoLock() {
-            clearTimeout(autoLockTimer);
-            if (!isLockEnabled()) return;
-            if (state.lock.autoLockMs === -1 || state.lock.autoLockMs === 0) return;
-            autoLockTimer = setTimeout(lockNow, state.lock.autoLockMs);
-        }
+function scheduleAutoLock() {
+    // We no longer use setTimeout for auto-lock.
+    // Mobile browsers pause background timers, so this is handled by the 'visibilitychange' event instead.
+    state.lock.lastActive = Date.now();
+}
         function lockNow() {
-            if (!isLockEnabled()) return;
-            if (state.isGenerating) stopGeneration();
-            state.cryptoKey = null;
-            if (state.vault.active) {
-                exitVault();
-            }
-            showLockScreen('unlock');
-        }
-        function recordActivity() {
-            state.lock.lastActive = Date.now();
-            scheduleAutoLock();
-        }
+    if (!isLockEnabled()) return;
+    // Don't lock if we are already on the lock screen
+    if (document.getElementById('lock-screen').classList.contains('show')) return; 
+    
+    if (state.isGenerating) stopGeneration();
+    state.cryptoKey = null;
+    if (state.vault.active) {
+        exitVault();
+    }
+    showLockScreen('unlock');
+}
+
+function recordActivity() {
+    // Completely disabled. The visibilitychange event handles everything.
+}
 
         // ============================================================
         //  THEME + ACCENT
@@ -3041,11 +3076,16 @@ mem.vector = await getEmbedding(text);
             }
         }
         function updateBookmarksCount() {
-            const chat = getActiveChat();
-            const count = chat ? (chat.messages.filter(m => m.bookmarked).length) : 0;
-            const menuCount = document.getElementById('chat-menu-bookmarks-count');
-            if (menuCount) menuCount.textContent = count > 0 ? String(count) : '';
-        }
+    const chat = getActiveChat();
+    const count = chat ? (chat.messages.filter(m => m.bookmarked).length) : 0;
+    const menuCount = document.getElementById('chat-menu-bookmarks-count');
+    if (menuCount) menuCount.textContent = count > 0 ? String(count) : '';
+    
+    // Also update the global badge!
+    if (typeof updateGlobalBookmarksCount === 'function') {
+        updateGlobalBookmarksCount();
+    }
+}
 
         // ============================================================
         //  SCROLL BUTTON
@@ -4011,9 +4051,15 @@ return `<div class="memory-chip w-full !justify-start ${m.pinned ? 'is-pinned' :
                 saveVault();
                 showToast('Project updated');
             } else {
-                createProject(name, color, systemPrompt);
-                showToast('Project created');
-            }
+    const newProject = createProject(name, color, systemPrompt);
+    showToast('Project created');
+    
+    // If we came from the "Move to Project" menu, auto-move the chat
+    if (state.pendingChatMoveId) {
+        moveChatToProject(state.pendingChatMoveId, newProject.id);
+        state.pendingChatMoveId = null; // Reset the flag
+    }
+}
             state.editingProjectId = null;
             closeProjectModal();
             renderSidebar();
@@ -4170,6 +4216,113 @@ return `<div class="memory-chip w-full !justify-start ${m.pinned ? 'is-pinned' :
                 panel.classList.add('scale-100', 'opacity-100');
             });
         }
+        function openGlobalBookmarksModal() {
+    document.getElementById('global-bookmarks-search').value = '';
+    renderGlobalBookmarksList();
+    const modal = document.getElementById('global-bookmarks-modal');
+    const panel = document.getElementById('global-bookmarks-panel');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+    requestAnimationFrame(() => {
+        panel.classList.remove('scale-95', 'opacity-0');
+        panel.classList.add('scale-100', 'opacity-100');
+    });
+}
+function closeGlobalBookmarksModal() {
+    const modal = document.getElementById('global-bookmarks-modal');
+    const panel = document.getElementById('global-bookmarks-panel');
+    panel.classList.add('scale-95', 'opacity-0');
+    panel.classList.remove('scale-100', 'opacity-100');
+    setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200);
+}
+function renderGlobalBookmarksList() {
+    const list = document.getElementById('global-bookmarks-list');
+    const searchTerm = (document.getElementById('global-bookmarks-search').value || '').toLowerCase();
+    
+    // Gather all bookmarked messages across all chats
+    let allBookmarks = [];
+    state.chats.forEach(chat => {
+        if (chat.hidden) return; // Skip vault chats
+        chat.messages.forEach((msg, idx) => {
+            if (msg.bookmarked) {
+                allBookmarks.push({ chat, msg, idx });
+            }
+        });
+    });
+
+    if (searchTerm) {
+        allBookmarks = allBookmarks.filter(b => 
+            (b.msg.content || '').toLowerCase().includes(searchTerm) || 
+            b.chat.title.toLowerCase().includes(searchTerm)
+        );
+    }
+
+    // Sort by newest first
+    allBookmarks.sort((a, b) => (b.msg.timestamp || 0) - (a.msg.timestamp || 0));
+
+    if (!allBookmarks.length) {
+        list.innerHTML = `<div class="p-8 text-center text-xs text-gray-400">
+            <i class="fa-solid fa-star text-3xl text-gray-300 dark:text-gray-700 mb-3 block"></i>
+            No bookmarks found.
+        </div>`;
+        return;
+    }
+
+    list.innerHTML = allBookmarks.map(b => {
+        const preview = (b.msg.content || '').slice(0, 150) + ((b.msg.content || '').length > 150 ? '…' : '');
+        const roleClass = b.msg.role === 'user' ? 'user' : 'assistant';
+        const role = b.msg.role === 'user' ? 'You' : 'AI';
+        return `<div class="bookmark-item" data-chat-id="${b.chat.id}" data-idx="${b.idx}">
+            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                <span class="bm-role ${roleClass}">${role}</span>
+                <span class="text-[10px] font-semibold text-gray-700 dark:text-gray-300 truncate max-w-[180px]"><i class="fa-solid fa-comment-dots opacity-50 mr-1"></i>${escapeHtml(b.chat.title)}</span>
+                <span class="text-[10px] text-gray-400 ml-auto">${formatTime(b.msg.timestamp || Date.now())}</span>
+                <button class="bm-remove w-6 h-6 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition" data-chat-id="${b.chat.id}" data-idx="${b.idx}" title="Remove bookmark">
+                    <i class="fa-solid fa-xmark text-[10px]"></i>
+                </button>
+            </div>
+            <div class="bm-preview">${escapeHtml(preview)}</div>
+        </div>`;
+    }).join('');
+
+    // Click to open chat and jump to message
+    list.querySelectorAll('.bookmark-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            if (e.target.closest('.bm-remove')) return;
+            const chatId = item.dataset.chatId;
+            const idx = parseInt(item.dataset.idx, 10);
+            closeGlobalBookmarksModal();
+            selectChat(chatId);
+            setTimeout(() => jumpToMessage(idx), 350);
+        });
+    });
+
+    // Remove bookmark
+    list.querySelectorAll('.bm-remove').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const chat = state.chats.find(c => c.id === btn.dataset.chatId);
+            if (chat) {
+                const msg = chat.messages[parseInt(btn.dataset.idx, 10)];
+                if (msg) {
+                    msg.bookmarked = false;
+                    saveVault(); 
+                    renderGlobalBookmarksList(); 
+                    updateGlobalBookmarksCount();
+                    if (getActiveChat() && getActiveChat().id === chat.id) renderMessages();
+                }
+            }
+        });
+    });
+}
+function updateGlobalBookmarksCount() {
+    let count = 0;
+    state.chats.forEach(c => { if (!c.hidden) count += c.messages.filter(m => m.bookmarked).length; });
+    const badge = document.getElementById('global-bookmarks-count-badge');
+    if (badge) {
+        if (count > 0) { badge.textContent = count; badge.classList.remove('hidden'); }
+        else badge.classList.add('hidden');
+    }
+}
         function closeBookmarksModal() {
             const modal = document.getElementById('bookmarks-modal');
             const panel = document.getElementById('bookmarks-panel');
@@ -5246,13 +5399,27 @@ return `<div class="memory-chip w-full !justify-start ${m.pinned ? 'is-pinned' :
                     ${isCurrent ? '<i class="fa-solid fa-check accent-text text-xs"></i>' : ''}
                 </button>`;
             });
-            list.innerHTML = html;
-            list.querySelectorAll('button').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    moveChatToProject(chat.id, btn.dataset.projectId || null);
-                    closeMoveModal();
-                });
-            });
+            // Add a "Create New" button at the bottom
+html += `<div class="border-t border-gray-200 dark:border-gray-800 my-1"></div>
+<button id="move-create-new-btn" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition text-left text-sm font-medium accent-text">
+    <i class="fa-solid fa-plus text-xs"></i> Create New Project
+</button>`;
+
+list.innerHTML = html;
+list.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        moveChatToProject(chat.id, btn.dataset.projectId || null);
+        closeMoveModal();
+    });
+});
+
+// Wire up the "Create New" button
+document.getElementById('move-create-new-btn').addEventListener('click', () => {
+    closeMoveModal();
+    // Open project modal, and set a flag so we know to move the chat after saving
+    openProjectModal(); 
+    state.pendingChatMoveId = chat.id; 
+});
             const modal = document.getElementById('move-modal');
             const panel = document.getElementById('move-panel');
             modal.classList.remove('hidden'); modal.classList.add('flex');
@@ -6326,6 +6493,7 @@ if (state.settings.systemPrompt) parts.push(state.settings.systemPrompt);
             updatePromptCountBadge();
             updateProjectCountBadge();
             updateWebSearchUI();
+            updateGlobalBookmarksCount();
             if (appInitialized) {
                 renderSidebar(); renderMessages(); updateHeader();
                 return;
@@ -6372,6 +6540,11 @@ if (state.settings.systemPrompt) parts.push(state.settings.systemPrompt);
                 openMemoryModal();
                 closeSidebarOnMobile();
             });
+            document.getElementById('open-global-bookmarks-btn').addEventListener('click', () => {
+    openGlobalBookmarksModal();
+    closeSidebarOnMobile();
+});
+document.getElementById('global-bookmarks-search').addEventListener('input', () => renderGlobalBookmarksList());
             document.getElementById('export-all-btn').addEventListener('click', () => {
                 openExportModal();
                 closeSidebarOnMobile();
@@ -6532,11 +6705,18 @@ document.getElementById('vault-toggle').addEventListener('click', (e) => {
     }
 });
             document.getElementById('auto-lock-select').addEventListener('change', (e) => {
-                state.lock.autoLockMs = parseInt(e.target.value, 10);
-                persistLockMeta();
-                scheduleAutoLock();
-                showToast('Auto-lock updated');
-            });
+    state.lock.autoLockMs = parseInt(e.target.value, 10);
+    state.lock.lastActive = Date.now();
+    if (state.lock.autoLockMs === 0) {
+        // Clear the timer so it locks on next background
+        localStorage.removeItem('deepchat_lock_time');
+    } else {
+        localStorage.setItem('deepchat_lock_time', Date.now().toString());
+    }
+    persistLockMeta();
+    scheduleAutoLock();
+    showToast('Auto-lock updated');
+});
 
             const msgInput = document.getElementById('message-input');
             msgInput.addEventListener('input', () => { autoResizeTextarea(); updateSendButton(); });
@@ -6628,17 +6808,41 @@ document.getElementById('vault-toggle').addEventListener('click', (e) => {
             ['click', 'keydown', 'touchstart', 'scroll'].forEach(evt => {
                 document.addEventListener(evt, recordActivity, { passive: true });
             });
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
-                    if (isLockEnabled() && state.lock.autoLockMs === 0) lockNow();
-                } else {
-                    if (isLockEnabled() && state.lock.autoLockMs !== -1) {
-                        const elapsed = Date.now() - state.lock.lastActive;
-                        if (elapsed >= state.lock.autoLockMs) lockNow();
-                        else scheduleAutoLock();
-                    }
+            // --- BULLETPROOF AUTO-LOCK ---
+let lastTick = Date.now();
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && isLockEnabled() && state.lock.autoLockMs === 0) {
+        // If "Immediately", lock the exact millisecond the app is hidden
+        lockNow();
+    }
+});
+setInterval(() => {
+    if (!isLockEnabled()) return;
+    
+    const now = Date.now();
+    const timeSinceLastTick = now - lastTick;
+    lastTick = now;
+
+    // If more than 3 seconds passed since the last tick, the app was in the background!
+    if (timeSinceLastTick > 3000) {
+        if (state.lock.autoLockMs > 0) {
+            // We just came back. Did we pass the time limit?
+            const lockedAt = localStorage.getItem('deepchat_lock_time');
+            if (lockedAt) {
+                const elapsed = now - parseInt(lockedAt, 10);
+                if (elapsed >= state.lock.autoLockMs) {
+                    lockNow();
                 }
-            });
+            }
+        }
+    } else {
+        // Only update the lock time if the app is ACTUALLY OPEN and unlocked
+        if (!document.getElementById('lock-screen').classList.contains('show')) {
+            localStorage.setItem('deepchat_lock_time', now.toString());
+        }
+    }
+}, 2000);
+// -----------------------------
 
             window.openSettings = openSettings;
             window.closeSettings = closeSettings;
@@ -6664,6 +6868,7 @@ document.getElementById('vault-toggle').addEventListener('click', (e) => {
             window.openPromptEditModal = openPromptEditModal;
             window.insertWithVariables = insertWithVariables;
             window.closeBookmarksModal = closeBookmarksModal;
+            window.closeGlobalBookmarksModal = closeGlobalBookmarksModal;
             window.closeSourceModal = closeSourceModal;
             window.openInChatSearch = openInChatSearch;
             window.closeMemorySaveModal = closeMemorySaveModal;
